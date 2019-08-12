@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as tf from '@tensorflow/tfjs'
 import './App.css';
-import {DogsNCats} from 'dogs-n-cats'
+import {DogsNCats} from './dnc'
 
 function App() {
   const tensorDisplay = useRef(null)
@@ -9,18 +9,21 @@ function App() {
     const dnc = new DogsNCats()
     dnc.load().then(async () => {
       console.log('Loaded')
-      const [batch] = dnc.devBatch(1)
+      const [batch] = dnc.devBatch(2)
       tf.unstack(batch).forEach(async tensor => {
         const imageTensor = tensor.div(255).reshape([
           32,
           32,
           3
         ])
+
+        tensor.print()
         await tf.browser.toPixels(imageTensor, tensorDisplay.current)
-    
         tensor.dispose()
         imageTensor.dispose()
-      })      
+      }) 
+      
+      batch.dispose()
     })
   }, [])
 
