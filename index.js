@@ -19,7 +19,7 @@ export class DogsNCats {
   }
 
   async load() {
-    allData = require('dogsNcats.json')
+    const allData = require('./dogsNcats.json')
     this.datasetDogs = string64_to_float32(allData.dogs)
     this.datasetCats = string64_to_float32(allData.cats)
   }
@@ -29,11 +29,11 @@ export class DogsNCats {
       batchSize * IMAGE_SIZE * NUM_CHANNELS
     )
     const startPoint = 0
-    const image = this.datasetDogs[0].slice(
+    const image = this.datasetDogs.slice(
       startPoint,
       startPoint + IMAGE_SIZE * NUM_CHANNELS
     )
-    batchImagesArray.set(image, i * IMAGE_SIZE * NUM_CHANNELS)    
+    batchImagesArray.set(image, 0)    
     const xs = tf.tensor3d(batchImagesArray, [
       batchSize,
       IMAGE_SIZE,
