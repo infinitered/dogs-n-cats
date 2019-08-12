@@ -1,0 +1,10 @@
+{
+  "name": "dogs-n-cats",
+  "version": "1.0.0",
+  "description": "Ready to go tensors for TensorFlow.js - dog and cat images data-set",
+  "main": "index.js",
+  "repository": "https://github.com/infinitered/dogs-n-cats",
+  "author": "Gant Laborde",
+  "license": "MIT",
+  "private": false
+}
