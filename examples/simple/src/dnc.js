@@ -1,6 +1,8 @@
 import * as tf from '@tensorflow/tfjs'
 import {
   IMAGE_SIZE,
+  IMAGE_WIDTH,
+  IMAGE_HEIGHT,
   NUM_CLASSES,
   NUM_DATASET_ELEMENTS,
   NUM_CHANNELS,
@@ -22,14 +24,60 @@ export class DogsNCats {
     const allData = require('./dogsNcats.json')
     this.datasetDogs = string64_to_float32(allData.dogs)
     this.datasetCats = string64_to_float32(allData.cats)
+    // DC.dogs
+    this.dogs = {
+      get: (batchSize = 1) => this.getBatch(this.datasetDogs, batchSize)
+    }
+
+    // DC.cats
+    this.cats = {
+      get: (batchSize = 1) => this.getBatch(this.datasetCats, batchSize)
+    }
   }
 
-  devBatch(batchSize) {
+  gridShow(dataSet, destinationCanvas, numX, numY, config={scale:1, grow:true}) {
+    const { scale, grow } = config
+    if (grow) {
+      destinationCanvas.width = IMAGE_WIDTH*numX*scale
+      destinationCanvas.height = IMAGE_HEIGHT*numY*scale 
+    }
+    const tdctx = destinationCanvas.getContext('2d')
+    // scale in step
+    tdctx.scale(scale,scale)
+    let xpos = 0
+    let ypos = 0
+
+    tf.unstack(dataSet).forEach(async tensor => {
+      const imageTensor = tensor
+        .div(255)
+        .reshape([
+        IMAGE_WIDTH,
+        IMAGE_HEIGHT,
+        NUM_CHANNELS
+      ])
+
+      // This creation/use must exist inside loop bc
+      // foreEach async would fight over shared resources
+      const canvas = document.createElement('canvas')
+      canvas.width = IMAGE_WIDTH
+      canvas.height = IMAGE_HEIGHT
+            
+      await tf.browser.toPixels(imageTensor, canvas)  
+      tdctx.drawImage(canvas, xpos * IMAGE_WIDTH, ypos * IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_HEIGHT)
+      
+      xpos = ((xpos + 1) % numX) // next column
+      if (xpos === 0) ypos++ // next row
+      tensor.dispose()
+      imageTensor.dispose()
+    })  
+  }
+
+  getBatch(dataSet, batchSize) {
     const batchImagesArray = new Float32Array(
       batchSize * IMAGE_SIZE * NUM_CHANNELS
     )
     const startPoint = 0
-    const image = this.datasetDogs.slice(
+    const image = dataSet.slice(
       startPoint,
       startPoint + IMAGE_SIZE * NUM_CHANNELS * batchSize
     )
