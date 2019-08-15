@@ -15,6 +15,8 @@ function App() {
     const dnc = new DogsNCats()
     dnc.load().then(async () => {
       console.log('Loaded')
+      // attach to window for debugging access
+      window.dnc = dnc
 
       const batchSize = gridX * gridY
       const [batchDogs] = dnc.dogs.get(batchSize)

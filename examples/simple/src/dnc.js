@@ -14,6 +14,18 @@ import {
 const string64_to_float32 = str64 => 
   new Float32Array(new Uint8Array([...atob(str64)].map(c => c.charCodeAt(0))).buffer)
 
+// Given N datasets, slices the correct amount and combines them
+const createSet = (dataSets, quantityFromEach, rootOffset = 0) => {
+  const subset = new Float32Array(IMAGE_SIZE * quantityFromEach * NUM_CHANNELS * dataSets.length)
+  let localOffset = 0
+  dataSets.forEach(dataGroup => {
+    const grabSize = IMAGE_SIZE * quantityFromEach * NUM_CHANNELS 
+    subset.set(dataGroup.slice(rootOffset, grabSize), localOffset)
+    localOffset = grabSize
+  })
+  return subset
+}
+
 export class DogsNCats {
   constructor() {
     this.shuffledTrainIndex = 0
@@ -22,19 +34,43 @@ export class DogsNCats {
 
   async load() {
     const allData = require('./dogsNcats.json')
+    // decode JSON data
     this.datasetDogs = string64_to_float32(allData.dogs)
     this.datasetCats = string64_to_float32(allData.cats)
+
+    // grab NUM_TRAIN_ELEMENTS from both and conCAT
+    this.trainSet = createSet([this.datasetDogs, this.datasetCats], NUM_TRAIN_ELEMENTS)
+    this.trainSetLabels = tf.fill([NUM_TRAIN_ELEMENTS], 0).concat(tf.fill([NUM_TRAIN_ELEMENTS], 1))
+    // grab NUM_TEST_ELEMENTS from both, offset already used training
+    this.testSet = createSet([this.datasetDogs, this.datasetCats], NUM_TEST_ELEMENTS, NUM_TRAIN_ELEMENTS)
+    this.testSetLabels = tf.fill([NUM_TEST_ELEMENTS], 0).concat(tf.fill([NUM_TEST_ELEMENTS], 1))
+
+    // DC.training
+    this.training = {
+      get: (batchSize = 1) => this.getBatch(this.trainSet, batchSize),
+      length: this.trainSet.length / IMAGE_SIZE / NUM_CHANNELS
+    }
+
+    // DC.test
+    this.test = {
+      get: (batchSize = 1) => this.getBatch(this.testSet, batchSize),
+      length: this.testSet.length / IMAGE_SIZE / NUM_CHANNELS
+    }    
+    
     // DC.dogs
     this.dogs = {
-      get: (batchSize = 1) => this.getBatch(this.datasetDogs, batchSize)
+      get: (batchSize = 1) => this.getBatch(this.datasetDogs, batchSize),
+      length: NUM_TRAIN_ELEMENTS
     }
 
     // DC.cats
     this.cats = {
-      get: (batchSize = 1) => this.getBatch(this.datasetCats, batchSize)
+      get: (batchSize = 1) => this.getBatch(this.datasetCats, batchSize),
+      length: NUM_TRAIN_ELEMENTS
     }
   }
 
+  // Prints out tensors to a canvas in grid form
   gridShow(dataSet, destinationCanvas, numX, numY, config={scale:1, grow:true}) {
     const { scale, grow } = config
     if (grow) {
