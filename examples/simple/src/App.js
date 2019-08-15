@@ -35,7 +35,7 @@ function App() {
         <p>
           Demo of dogs-n-cats NPM library
         </p>
-        <img src="dogsncats.jpg" width="100"/>
+        <img src="dogsncats.jpg" width="100" alt="dog and cat next to each other" />
         <a
           className="App-link"
           href="https://github.com/infinitered/dogs-n-cats"
@@ -48,11 +48,11 @@ function App() {
           href="https://www.cs.toronto.edu/~kriz/cifar.html"      
           className="App-link"     
           target="_blank"
-          rel="noopener noreferrer">CIFAR-10</a> dataset, all in-memmory JavaScript.</p>
+          rel="noopener noreferrer">CIFAR-10</a> dataset, all in-memory JavaScript.</p>
         <canvas style={styles.canvas} ref={tensorCatDisplay} />
       </header>
       <div>
-        <img src="dnc_logo.png" className="logo" />
+        <img src="dnc_logo.png" className="logo" alt="simple dog and cat logo" />
         <h2>Example Usage</h2>
         <Gist id='78189f19457449a09ecc05eb927f686c' file='dog-cat.js' />
       </div>

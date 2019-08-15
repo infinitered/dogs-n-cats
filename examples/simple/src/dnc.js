@@ -6,7 +6,6 @@ import {
   NUM_CLASSES,
   NUM_DATASET_ELEMENTS,
   NUM_CHANNELS,
-  BYTES_PER_UINT8,
   NUM_TRAIN_ELEMENTS,
   NUM_TEST_ELEMENTS
 } from './constants'
@@ -28,6 +27,8 @@ const createSet = (dataSets, quantityFromEach, rootOffset = 0) => {
 
 export class DogsNCats {
   constructor() {
+    this.shuffledDogIndex = 0
+    this.shuffledCatIndex = 0
     this.shuffledTrainIndex = 0
     this.shuffledTestIndex = 0
   }
@@ -37,35 +38,62 @@ export class DogsNCats {
     // decode JSON data
     this.datasetDogs = string64_to_float32(allData.dogs)
     this.datasetCats = string64_to_float32(allData.cats)
+    // create data-specific labels/randomization
+    this.datasetDogsLabels = new Array(NUM_DATASET_ELEMENTS).fill(0)
+    this.datasetCatsLabels = new Array(NUM_DATASET_ELEMENTS).fill(1)
+    this.shuffledDogIndicies = tf.util.createShuffledIndices(NUM_DATASET_ELEMENTS)
+    this.shuffledCatIndicies = tf.util.createShuffledIndices(NUM_DATASET_ELEMENTS)
 
-    // grab NUM_TRAIN_ELEMENTS from both and conCAT
+    // Create training set, labels, indicies with dogs and conCATs :'D
     this.trainSet = createSet([this.datasetDogs, this.datasetCats], NUM_TRAIN_ELEMENTS)
-    this.trainSetLabels = tf.fill([NUM_TRAIN_ELEMENTS], 0).concat(tf.fill([NUM_TRAIN_ELEMENTS], 1))
-    // grab NUM_TEST_ELEMENTS from both, offset already used training
+    this.trainSetLabels = new Array(NUM_TRAIN_ELEMENTS).fill(0).concat(new Array(NUM_TRAIN_ELEMENTS).fill(1))
+    this.shuffledTrainIndicies = tf.util.createShuffledIndices(NUM_TRAIN_ELEMENTS * NUM_CLASSES)
+    // Create test set, labels, and indicies
     this.testSet = createSet([this.datasetDogs, this.datasetCats], NUM_TEST_ELEMENTS, NUM_TRAIN_ELEMENTS)
-    this.testSetLabels = tf.fill([NUM_TEST_ELEMENTS], 0).concat(tf.fill([NUM_TEST_ELEMENTS], 1))
+    this.testSetLabels = new Array(NUM_TEST_ELEMENTS).fill(0).concat(new Array(NUM_TEST_ELEMENTS).fill(1))
+    this.shuffledTestIndicies = tf.util.createShuffledIndices(NUM_TEST_ELEMENTS * NUM_CLASSES)
 
     // DC.training
     this.training = {
-      get: (batchSize = 1) => this.getBatch(this.trainSet, batchSize),
+      get: (batchSize = 1) => this.getRandomBatch([this.trainSet, this.trainSetLabels], batchSize, () => {
+        this.shuffledTrainIndex =
+          (this.shuffledTrainIndex + 1) % this.shuffledTrainIndices.length
+        return this.shuffledTrainIndicies[this.shuffledTrainIndex]
+      }), 
+      getOrdered: (batchSize = 1) => this.getBatch(this.trainSet, batchSize),
       length: this.trainSet.length / IMAGE_SIZE / NUM_CHANNELS
     }
 
     // DC.test
     this.test = {
-      get: (batchSize = 1) => this.getBatch(this.testSet, batchSize),
+      get: (batchSize = 1) => this.getRandomBatch([this.testSet, this.testSetLabels], batchSize, () => {
+        this.shuffledTestIndex =
+          (this.shuffledTestIndex + 1) % this.shuffledTestIndices.length
+        return this.shuffledTestIndicies[this.shuffledTestIndex]
+      }),
+      getOrdered: (batchSize = 1) => this.getBatch(this.testSet, batchSize),
       length: this.testSet.length / IMAGE_SIZE / NUM_CHANNELS
     }    
     
     // DC.dogs
     this.dogs = {
-      get: (batchSize = 1) => this.getBatch(this.datasetDogs, batchSize),
+      get: (batchSize = 1) => this.getRandomBatch([this.datasetDogs, this.datasetDogsLabels], batchSize, () => {
+        this.shuffledDogIndex =
+          (this.shuffledDogIndex + 1) % this.shuffledDogIndicies.length
+        return this.shuffledDogIndicies[this.shuffledDogIndex]
+      }),      
+      getOrdered: (batchSize = 1) => this.getBatch(this.datasetDogs, batchSize),
       length: NUM_TRAIN_ELEMENTS
     }
 
     // DC.cats
     this.cats = {
-      get: (batchSize = 1) => this.getBatch(this.datasetCats, batchSize),
+      get: (batchSize = 1) => this.getRandomBatch([this.datasetCats, this.datasetCatsLabels], batchSize, () => {
+        this.shuffledCatIndex =
+          (this.shuffledCatIndex + 1) % this.shuffledCatIndicies.length
+        return this.shuffledCatIndicies[this.shuffledCatIndex]
+      }),
+      getOrdered: (batchSize = 1) => this.getBatch(this.datasetCats, batchSize),
       length: NUM_TRAIN_ELEMENTS
     }
   }
@@ -106,6 +134,35 @@ export class DogsNCats {
       tensor.dispose()
       imageTensor.dispose()
     })  
+  }
+
+  getRandomBatch(data, batchSize, indexFunc) {
+    const batchImagesArray = new Float32Array(
+      batchSize * IMAGE_SIZE * NUM_CHANNELS
+    )
+    const batchLabelsArray = new Uint8Array(batchSize)
+    // Create a batchSize of images and labels
+    for (let i = 0; i < batchSize; i++) {
+      const idx = indexFunc()
+
+      const startPoint = idx * IMAGE_SIZE * NUM_CHANNELS
+      // one random image by index
+      const image = data[0].slice(
+        startPoint,
+        startPoint + IMAGE_SIZE * NUM_CHANNELS
+      )
+      batchImagesArray.set(image, i * IMAGE_SIZE * NUM_CHANNELS)
+      // corresponding  label by index
+      const label = data[1][idx]
+      batchLabelsArray.set([label], i)
+    }
+    const xs = tf.tensor3d(batchImagesArray, [
+      batchSize,
+      IMAGE_SIZE,
+      NUM_CHANNELS
+    ])
+    const labels = tf.tensor1d(batchLabelsArray)
+    return [ xs, labels ]  
   }
 
   getBatch(dataSet, batchSize) {
