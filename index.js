@@ -187,59 +187,25 @@ export class DogsNCats {
       startPoint + IMAGE_SIZE * NUM_CHANNELS * batchSize
     )
     batchImagesArray.set(image, 0)    
-    const xs = tf.tensor3d(batchImagesArray, [
-      batchSize,
-      IMAGE_SIZE,
-      NUM_CHANNELS
-    ])
+    
+    let xs
+    // Single 3D tensor for single get
+    if (batchSize === 1) {
+      xs = tf.tensor3d(batchImagesArray, [
+        IMAGE_HEIGHT,
+        IMAGE_WIDTH,
+        NUM_CHANNELS
+      ])
+    } else {
+      xs = tf.tensor4d(batchImagesArray, [
+        batchSize,
+        IMAGE_HEIGHT,
+        IMAGE_WIDTH,
+        NUM_CHANNELS
+      ])     
+    }    
 
-    return [xs]
+    return xs
   }
 
-  nextTrainBatch(batchSize) {
-    return this.nextBatch(
-      batchSize,
-      [this.trainImages, this.trainLabels],
-      () => {
-        this.shuffledTrainIndex =
-          (this.shuffledTrainIndex + 1) % this.trainIndices.length
-        return this.trainIndices[this.shuffledTrainIndex]
-        // return this.shuffledTrainIndex // For debugging, no rando
-      }
-    )
-  }
-
-  nextTestBatch(batchSize) {
-    return this.nextBatch(batchSize, [this.testImages, this.testLabels], () => {
-      this.shuffledTestIndex =
-        (this.shuffledTestIndex + 1) % this.testIndices.length
-      return this.testIndices[this.shuffledTestIndex]
-      // return this.shuffledTestIndex // For debugging, no rando
-    })
-  }
-
-  nextBatch(batchSize, data, index) {
-    const batchImagesArray = new Float32Array(
-      batchSize * IMAGE_SIZE * NUM_CHANNELS
-    )
-
-    // Create a batchSize of images
-    for (let i = 0; i < batchSize; i++) {
-      const idx = index()
-
-      const startPoint = idx * IMAGE_SIZE * NUM_CHANNELS
-      const image = data[0].slice(
-        startPoint,
-        startPoint + IMAGE_SIZE * NUM_CHANNELS
-      )
-      batchImagesArray.set(image, i * IMAGE_SIZE * NUM_CHANNELS)
-    }
-    const xs = tf.tensor3d(batchImagesArray, [
-      batchSize,
-      IMAGE_SIZE,
-      NUM_CHANNELS
-    ])
-
-    return { xs }
-  }
 }
