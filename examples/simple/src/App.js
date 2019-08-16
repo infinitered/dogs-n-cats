@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 //import * as tf from '@tensorflow/tfjs'
 import './App.css';
 import Gist from 'react-gist'
-import {DogsNCats} from './dnc'
+import {DogsNCats} from 'dogs-n-cats'
 
 
 const gridX = 20
