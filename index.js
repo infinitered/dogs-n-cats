@@ -164,14 +164,14 @@ export class DogsNCats {
         IMAGE_HEIGHT,
         IMAGE_WIDTH,
         NUM_CHANNELS
-      ])
+      ], 'int32')
     } else {
       xs = tf.tensor4d(batchImagesArray, [
         batchSize,
         IMAGE_HEIGHT,
         IMAGE_WIDTH,
         NUM_CHANNELS
-      ])     
+      ], 'int32')     
     }
     const labels = tf.tensor1d(batchLabelsArray)
     return [ xs, labels ]  
@@ -195,14 +195,14 @@ export class DogsNCats {
         IMAGE_HEIGHT,
         IMAGE_WIDTH,
         NUM_CHANNELS
-      ])
+      ], 'int32')
     } else {
       xs = tf.tensor4d(batchImagesArray, [
         batchSize,
         IMAGE_HEIGHT,
         IMAGE_WIDTH,
         NUM_CHANNELS
-      ])     
+      ], 'int32')     
     }    
 
     return xs
