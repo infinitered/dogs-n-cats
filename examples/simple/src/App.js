@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 //import * as tf from '@tensorflow/tfjs'
 import './App.css';
 import Gist from 'react-gist'
-import {DogsNCats} from 'dogs-n-cats'
+import * as DogsNCats from "dogs-n-cats";
 
 
 const gridX = 20
@@ -12,12 +12,15 @@ function App() {
   const tensorDogDisplay = useRef(null)
   const tensorCatDisplay = useRef(null)
   useEffect(() => {
-    const dnc = new DogsNCats()
-    dnc.load().then(async () => {
+    DogsNCats.load().then(async dnc => {
       console.log('Loaded')
+      console.log('Training size', dnc.training.length)
+      console.log('Test size', dnc.test.length)
+      console.log('Dogs size', dnc.dogs.length)
+      console.log('Cats size', dnc.cats.length)
       // attach to window for debugging access
       window.dnc = dnc
-
+      
       const batchSize = gridX * gridY
       const [batchDogs] = dnc.dogs.get(batchSize)
       const [batchCats] = dnc.cats.get(batchSize)

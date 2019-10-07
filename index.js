@@ -4,6 +4,7 @@ import {
   IMAGE_WIDTH,
   IMAGE_HEIGHT,
   NUM_CLASSES,
+  NUM_PER_CLASS,
   NUM_DATASET_ELEMENTS,
   NUM_CHANNELS,
   NUM_TRAIN_ELEMENTS,
@@ -16,15 +17,22 @@ const string64_to_float32 = str64 =>
   )
 
 // Given N datasets, slices the correct amount and combines them
-const createSet = (dataSets, quantityFromEach, rootOffset = 0) => {
+const createSet = (dataSets, quantityTotal, rootOffset = 0) => {
+
+  // requires even total - fix later
+  const quantityFromEach = Math.floor(quantityTotal / dataSets.length)
+  const scaledRootOffset = rootOffset * IMAGE_SIZE * NUM_CHANNELS
+  
   const subset = new Float32Array(
-    IMAGE_SIZE * quantityFromEach * NUM_CHANNELS * dataSets.length
+    IMAGE_SIZE * quantityTotal * NUM_CHANNELS
   )
   let localOffset = 0
   dataSets.forEach(dataGroup => {
     const grabSize = IMAGE_SIZE * quantityFromEach * NUM_CHANNELS
-    subset.set(dataGroup.slice(rootOffset, grabSize), localOffset)
-    localOffset = grabSize
+    const begin = scaledRootOffset
+    const end = grabSize + begin
+    subset.set(dataGroup.slice(begin, end), localOffset)
+    localOffset += grabSize
   })
   return subset
 }
@@ -55,14 +63,15 @@ export class DogsNCats {
     // decode JSON data
     this.datasetDogs = string64_to_float32(allData.dogs)
     this.datasetCats = string64_to_float32(allData.cats)
+    
     // create data-specific labels/randomization
-    this.datasetDogsLabels = new Array(NUM_DATASET_ELEMENTS).fill(0)
-    this.datasetCatsLabels = new Array(NUM_DATASET_ELEMENTS).fill(1)
+    this.datasetDogsLabels = new Array(NUM_PER_CLASS).fill(0)
+    this.datasetCatsLabels = new Array(NUM_PER_CLASS).fill(1)
     this.shuffledDogIndices = tf.util.createShuffledIndices(
-      NUM_DATASET_ELEMENTS
+      NUM_PER_CLASS
     )
     this.shuffledCatIndicies = tf.util.createShuffledIndices(
-      NUM_DATASET_ELEMENTS
+      NUM_PER_CLASS
     )
 
     // Create training set, labels, indicies with dogs and conCATs :'D
@@ -70,23 +79,23 @@ export class DogsNCats {
       [this.datasetDogs, this.datasetCats],
       NUM_TRAIN_ELEMENTS
     )
-    this.trainSetLabels = new Array(NUM_TRAIN_ELEMENTS)
+    this.trainSetLabels = new Array(NUM_TRAIN_ELEMENTS/NUM_CLASSES)
       .fill(0)
-      .concat(new Array(NUM_TRAIN_ELEMENTS).fill(1))
+      .concat(new Array(NUM_TRAIN_ELEMENTS/NUM_CLASSES).fill(1))
     this.shuffledTrainIndices = tf.util.createShuffledIndices(
-      NUM_TRAIN_ELEMENTS * NUM_CLASSES
+      NUM_TRAIN_ELEMENTS
     )
     // Create test set, labels, and indicies
     this.testSet = createSet(
       [this.datasetDogs, this.datasetCats],
       NUM_TEST_ELEMENTS,
-      NUM_TRAIN_ELEMENTS
+      (NUM_TRAIN_ELEMENTS/2)
     )
-    this.testSetLabels = new Array(NUM_TEST_ELEMENTS)
+    this.testSetLabels = new Array(NUM_TEST_ELEMENTS/NUM_CLASSES)
       .fill(0)
-      .concat(new Array(NUM_TEST_ELEMENTS).fill(1))
+      .concat(new Array(NUM_TEST_ELEMENTS/NUM_CLASSES).fill(1))
     this.shuffledTestIndices = tf.util.createShuffledIndices(
-      NUM_TEST_ELEMENTS * NUM_CLASSES
+      NUM_TEST_ELEMENTS
     )
 
     // DC.training
@@ -134,7 +143,7 @@ export class DogsNCats {
           }
         ),
       getOrdered: (batchSize = 1) => this.getBatch(this.datasetDogs, batchSize),
-      length: NUM_TRAIN_ELEMENTS
+      length: this.datasetDogs.length / IMAGE_SIZE / NUM_CHANNELS
     }
 
     // DC.cats
@@ -150,7 +159,7 @@ export class DogsNCats {
           }
         ),
       getOrdered: (batchSize = 1) => this.getBatch(this.datasetCats, batchSize),
-      length: NUM_TRAIN_ELEMENTS
+      length: this.datasetCats.length / IMAGE_SIZE / NUM_CHANNELS
     }
   }
 
