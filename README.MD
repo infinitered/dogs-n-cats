@@ -33,6 +33,11 @@ DC.gridShow(catTensors, displayCanvas, gridX, gridY, {scale:1.5, grow:true})
 
 ```
 
+# Available as CDN with unpkg
+```
+<script src="https://unpkg.com/dogs-n-cats" type="text/javascript"></script>
+```
+
 # Dogs N Cats TensorFlow.js Data
 #### Gathered from CFAR-10 Dataset
 https://www.cs.toronto.edu/~kriz/cifar.html
