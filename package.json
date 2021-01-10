@@ -1,13 +1,26 @@
 {
   "name": "dogs-n-cats",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Ready to go tensors for TensorFlow.js - dog and cat images data-set",
-  "main": "index.js",
+  "main": "src/index.js",
+  "unpkg": "dist/dogsncats.min.js",  
   "repository": "https://github.com/infinitered/dogs-n-cats",
   "author": "Gant Laborde",
   "license": "MIT",
   "private": false,
+  "scripts": {
+    "make_cdn": "yarn build && yarn scriptbundle && yarn minbundle",
+    "build": "babel src -d build --copy-files",
+    "scriptbundle": "browserify ./build/index.js --standalone dogsncats --outfile ./dist/bundle.js",
+    "minbundle": "terser dist/bundle.js --compress --mangle --output dist/dogsncats.min.js"
+  },
   "peerDependencies": {
     "@tensorflow/tfjs": "^1.2.7"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "browserify": "^17.0.0",
+    "terser": "^5.5.1"
   }
 }
