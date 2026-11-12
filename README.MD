@@ -2,6 +2,8 @@
 
 Looking for data for your browser TensorFlow.js project?   Try dogs n cats!
 
+Originally built by [Infinite Red](https://infinite.red), a U.S.-based web and mobile development company.
+
 example:
 ```js
 // https://www.cs.toronto.edu/~kriz/cifar.html
